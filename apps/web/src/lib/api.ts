@@ -25,8 +25,10 @@ import type {
   AiPromptTemplate,
   AiPromptTemplateCreateInput,
   AiPromptTemplateUpdateInput,
+  AiAction,
+  AiTargetLanguage,
+  AiTone,
   AiStreamEvent,
-  AiGenerateInput,
   AiTagSuggestionPromptUpdateInput,
   AiTagSuggestionsRequestInput,
   AiTagSuggestionsResponse,
@@ -47,13 +49,6 @@ type ListNotebooksResponse = {
 export type InstanceRelease = {
   version: string;
   changes: Record<string, string[]>;
-};
-
-export type InstanceHealth = {
-  ok: true;
-  name: string;
-  runtime: string;
-  authMode: string;
 };
 
 type ListMemosResponse = {
@@ -462,8 +457,6 @@ const requestArrayBuffer = async (path: string) => {
 };
 
 export const api = {
-  getInstanceHealth: () => request<InstanceHealth>("/api/health"),
-
   getInstanceRelease: () => request<InstanceRelease>("/api/release"),
 
   getSession: () => request<AuthSession>("/api/v1/auth/session"),
@@ -676,7 +669,17 @@ export const api = {
     }),
 
   streamAiGeneration: async (
-    payload: AiGenerateInput,
+    payload: {
+      action: AiAction;
+      promptId?: string;
+      locale?: string;
+      title: string;
+      contentMarkdown: string;
+      stream?: boolean;
+      targetLanguage?: AiTargetLanguage;
+      tone?: AiTone;
+      instruction?: string;
+    },
     options: { signal?: AbortSignal; onEvent: (event: AiStreamEvent) => void },
   ) => {
     const headers = new Headers({ "Content-Type": "application/json" });

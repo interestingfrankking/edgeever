@@ -8,7 +8,6 @@ import {
   normalizeMermaidSvgForViewer,
   resolveMermaidViewerBackground,
 } from "@/lib/mermaid-svg";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MermaidViewerProps {
   closeLabel: string;
@@ -61,22 +60,17 @@ export const MermaidViewer = ({
   if (!open || !objectUrl) return null;
 
   const resetButton = (
-    <TooltipProvider key="reset-mermaid-zoom" delayDuration={0} skipDelayDuration={0}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            className="edgeever-mermaid-viewer-reset"
-            disabled={zoom <= 1}
-            aria-label={resetZoomLabel}
-            onClick={() => zoomRef.current?.changeZoom(1)}
-          >
-            <RotateCcw aria-hidden="true" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">{resetZoomLabel}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <button
+      key="reset-mermaid-zoom"
+      type="button"
+      className="edgeever-mermaid-viewer-reset"
+      disabled={zoom <= 1}
+      aria-label={resetZoomLabel}
+      title={resetZoomLabel}
+      onClick={() => zoomRef.current?.changeZoom(1)}
+    >
+      <RotateCcw aria-hidden="true" />
+    </button>
   );
 
   return (

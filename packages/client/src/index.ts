@@ -22,6 +22,9 @@ import type {
   PublicMemoShare,
   TagSummary,
   TiptapDoc,
+  AiAction,
+  AiTargetLanguage,
+  AiTone,
   AiSettings,
   AiDiscoveredModel,
   AiProvider,
@@ -29,7 +32,6 @@ import type {
   AiPromptTemplateCreateInput,
   AiPromptTemplateUpdateInput,
   AiStreamEvent,
-  AiGenerateInput,
   AiTagSuggestionPromptUpdateInput,
   AiTagSuggestionsRequestInput,
   AiTagSuggestionsResponse,
@@ -343,7 +345,17 @@ export const createEdgeEverClient = (options: EdgeEverClientOptions = {}) => {
       }),
 
     streamAiGeneration: async (
-      payload: AiGenerateInput,
+      payload: {
+        action: AiAction;
+        promptId?: string;
+        locale?: string;
+        title: string;
+        contentMarkdown: string;
+        stream?: boolean;
+        targetLanguage?: AiTargetLanguage;
+        tone?: AiTone;
+        instruction?: string;
+      },
       streamOptions: { signal?: AbortSignal; onEvent: (event: AiStreamEvent) => void },
     ) => {
       const headers = new Headers({ "Content-Type": "application/json" });

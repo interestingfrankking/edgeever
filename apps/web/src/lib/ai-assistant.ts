@@ -14,7 +14,6 @@ import {
   promptNeedsTargetLanguage,
   promptNeedsTone,
   type AiAction,
-  type AiAttachmentInput,
   type AiPromptParameterKind,
   type AiPromptResultMode,
   type AiTargetLanguage,
@@ -53,7 +52,6 @@ export const buildAiAssistantRequest = ({
   targetLanguage,
   title,
   tone,
-  attachments,
 }: {
   action: AiAssistantAction;
   contentMarkdown: string;
@@ -64,7 +62,6 @@ export const buildAiAssistantRequest = ({
   targetLanguage: TargetLanguage;
   title: string;
   tone: AiTone;
-  attachments?: AiAttachmentInput[];
 }): {
   action: AiAction;
   title: string;
@@ -74,7 +71,6 @@ export const buildAiAssistantRequest = ({
   targetLanguage?: AiTargetLanguage;
   tone?: AiTone;
   instruction?: string;
-  attachments?: AiAttachmentInput[];
 } => {
   const instruction = customInstruction.trim();
   const needsTargetLanguage = parameterKind
@@ -89,7 +85,6 @@ export const buildAiAssistantRequest = ({
     contentMarkdown,
     // Saved prompts are resolved by id on the server; only freeform actions send client text.
     ...(!promptId && instruction ? { instruction } : {}),
-    ...(attachments?.length ? { attachments } : {}),
     ...(needsTargetLanguage ? { targetLanguage } : {}),
     ...(needsTone ? { tone } : {}),
   };

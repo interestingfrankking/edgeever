@@ -10,8 +10,6 @@ import { LoginSessionRevokeDialog, type LoginSessionRevokeTarget } from "./Login
 
 interface LoginDevicesCardProps {
   authRequired: boolean;
-  isLoggingOut: boolean;
-  onLogout: () => void;
 }
 
 type DeviceKind = "mobile" | "tablet" | "desktop" | "unknownDevice";
@@ -68,7 +66,7 @@ const formatSessionTime = (value: string, locale: string) =>
     minute: "2-digit",
   }).format(new Date(value));
 
-export const LoginDevicesCard = ({ authRequired, isLoggingOut, onLogout }: LoginDevicesCardProps) => {
+export const LoginDevicesCard = ({ authRequired }: LoginDevicesCardProps) => {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [revokeTarget, setRevokeTarget] = useState<LoginSessionRevokeTarget | null>(null);
@@ -192,16 +190,7 @@ export const LoginDevicesCard = ({ authRequired, isLoggingOut, onLogout }: Login
                           onClick={() => { setEditingSessionId(session.id); setLabelDraft(session.label ?? ""); }}
                         ><Pencil className="h-4 w-4" /></Button>
                       )}
-                    {session.isCurrent ? (
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        disabled={isLoggingOut}
-                        onClick={onLogout}
-                      >
-                        {isLoggingOut ? t("session.loggingOut") : t("session.logout")}
-                      </Button>
-                    ) : (
+                    {!session.isCurrent ? (
                       <Button
                         size="sm"
                         variant="danger"
@@ -210,7 +199,7 @@ export const LoginDevicesCard = ({ authRequired, isLoggingOut, onLogout }: Login
                       >
                         {t("loginDevices.revokeDevice")}
                       </Button>
-                    )}
+                    ) : null}
                     </div>
                   </li>
                 );

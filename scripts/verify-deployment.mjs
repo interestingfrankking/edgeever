@@ -82,29 +82,16 @@ export const normalizeDeploymentUrl = (value) => {
   return url.origin;
 };
 
-export const parseCapturedDeploymentTargets = (content) => {
+export const parseCapturedDeploymentUrls = (content) => {
   const parsed = parseJsonOutput(content, "the deployed Worker targets");
   if (!Array.isArray(parsed?.urls) || parsed.urls.some((url) => typeof url !== "string")) {
     throw new Error("Wrangler returned an invalid deployed Worker targets file.");
   }
-  if (parsed.versionId !== undefined && typeof parsed.versionId !== "string") {
-    throw new Error("Wrangler returned an invalid deployed Worker version ID.");
-  }
-  return {
-    urls: parsed.urls.map((url) => normalizeDeploymentUrl(url)).filter(Boolean),
-    versionId: parsed.versionId?.trim() || undefined,
-  };
+  return parsed.urls.map((url) => normalizeDeploymentUrl(url)).filter(Boolean);
 };
 
-export const parseCapturedDeploymentUrls = (content) => parseCapturedDeploymentTargets(content).urls;
-
-export const readCapturedDeploymentTargets = (path = resolve(DEPLOYMENT_TARGETS_PATH)) =>
-  existsSync(path)
-    ? parseCapturedDeploymentTargets(readFileSync(path, "utf8"))
-    : { urls: [], versionId: undefined };
-
 export const readCapturedDeploymentUrls = (path = resolve(DEPLOYMENT_TARGETS_PATH)) =>
-  readCapturedDeploymentTargets(path).urls;
+  existsSync(path) ? parseCapturedDeploymentUrls(readFileSync(path, "utf8")) : [];
 
 export const resolveDeploymentUrl = ({ env = process.env, capturedUrls = [] } = {}) => {
   const configuredUrl = instanceEnvironmentValue(env, "DEPLOYMENT_URL");
@@ -118,32 +105,8 @@ export const resolveDeploymentUrl = ({ env = process.env, capturedUrls = [] } = 
 
 const wait = (durationMs) => new Promise((resolveWait) => setTimeout(resolveWait, durationMs));
 
-const summarizeHealthResponseBody = (body, maxLength = 500) => {
-  const normalized = body.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
-  if (!normalized) return undefined;
-  return normalized.length > maxLength
-    ? `${normalized.slice(0, maxLength)}…`
-    : normalized;
-};
-
-const healthFailureContext = ({ body, deploymentVersionId, response }) => {
-  const details = [];
-  const responseBody = summarizeHealthResponseBody(body);
-  const cfRay = response.headers.get("cf-ray")?.trim();
-
-  if (responseBody) details.push(`response body: ${responseBody}`);
-  if (cfRay) details.push(`CF-Ray: ${cfRay}`);
-  if (deploymentVersionId) details.push(`Worker Version ID: ${deploymentVersionId}`);
-  details.push(
-    "Inspect Cloudflare Workers & Pages > edgeever > Logs > Live for the uncaught exception and stack trace, then retry the request.",
-  );
-
-  return details.join("; ");
-};
-
-export const verifyCloudflareWorkerHealth = async ({
+export const verifyOnlineHealth = async ({
   deploymentUrl,
-  deploymentVersionId,
   fetchImpl = fetch,
   attempts = 4,
   retryDelayMs = 1_000,
@@ -183,10 +146,7 @@ export const verifyCloudflareWorkerHealth = async ({
         );
       } else {
         const diagnostic = payload?.error?.code || `${response.status} ${response.statusText}`.trim();
-        const context = healthFailureContext({ body, deploymentVersionId, response });
-        lastFailure = new Error(
-          `Deployed Worker health check failed at ${healthUrl}: ${diagnostic}; ${context}`,
-        );
+        lastFailure = new Error(`Deployed Worker health check failed at ${healthUrl}: ${diagnostic}.`);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -247,8 +207,8 @@ const main = async () => {
   }
   console.log("[ok] Worker authentication Secret is deployed");
 
-  const capturedTargets = readCapturedDeploymentTargets();
-  const deploymentUrl = resolveDeploymentUrl({ capturedUrls: capturedTargets.urls });
+  const capturedUrls = readCapturedDeploymentUrls();
+  const deploymentUrl = resolveDeploymentUrl({ capturedUrls });
   if (!deploymentUrl) {
     if (process.env.CI?.trim().toLowerCase() === "true" || process.env.WORKERS_CI === "1") {
       throw new Error(
@@ -259,14 +219,8 @@ const main = async () => {
     return;
   }
 
-  const health = await verifyCloudflareWorkerHealth({
-    deploymentUrl,
-    deploymentVersionId: capturedTargets.versionId,
-  });
-  const versionDiagnostic = capturedTargets.versionId
-    ? ` (Worker Version ID: ${capturedTargets.versionId})`
-    : "";
-  console.log(`[ok] deployed Worker health: ${health.healthUrl}${versionDiagnostic}`);
+  const health = await verifyOnlineHealth({ deploymentUrl });
+  console.log(`[ok] deployed Worker health: ${health.healthUrl}`);
 };
 
 if (import.meta.main) {
