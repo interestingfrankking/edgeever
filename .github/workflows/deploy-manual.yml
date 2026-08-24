@@ -1,0 +1,39 @@
+name: Deploy EdgeEver manually
+
+# 手动一键部署：把 fork 当前 main 构建并直接部署到 Cloudflare（绕过被封禁的 Workers Builds）。
+# 用法：先在 Actions 运行 "Update deployed EdgeEver" 同步上游，再运行本工作流。
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edgeever-manual-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build & Deploy to Cloudflare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build Cloudflare bundle
+        run: bun run build:cloudflare
+
+      - name: Deploy to Cloudflare (migrate + deploy)
+        run: EDGE_EVER_USE_EXISTING_AUTH_SECRET=true EDGE_EVER_DEPLOYMENT_TRIGGER=manual EDGE_EVER_DEPLOYMENT_METHOD=github_actions bun run deploy:ci
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CI: "false"
